@@ -301,6 +301,31 @@ class Prompt {
         }
     }
 
+    results() {
+
+        // Words per Minute
+        const correctCharacters = this.lines.reduce(
+            (accumulatorLine, currentLine) => {
+                console.log('Line', currentLine.lineRaw);
+                return accumulatorLine + currentLine.words.reduce(
+                    (accumulatorWord, currentWord) => {
+                        if (currentWord.correct()) {
+                            console.log('Word', currentWord.wordRaw, currentWord.characters.length);
+                            console
+                            return accumulatorWord + currentWord.characters.length;
+                        } else {
+                            return accumulatorWord + 0;
+                        }
+                    }, 0
+                );
+            }, 0
+        )
+
+        const wpm = (correctCharacters / 5) * 2;
+
+        return wpm;
+    }
+
 }
 
 const response = await fetch(
@@ -311,6 +336,13 @@ const test = await response.text();
 
 const prompt = ref(new Prompt(test));
 
+var timer = null;
+const time = ref(30);
+const timerStarted = ref(false);
+
+const resultsDisplay = ref(false);
+const results = ref();
+
 console.log(prompt.value);
 
 useEventListener(window, 'keydown', (e) => {
@@ -318,6 +350,18 @@ useEventListener(window, 'keydown', (e) => {
     //var [lineIndex, wordIndex, characterIndex] = prompt.value.currentCharacter();
     //var characterEl = document.getElementById(`line-${lineIndex}-word-${wordIndex}-character-${characterIndex}`);
     //characterEl.classList.remove("current-character");
+
+    if (!timerStarted.value) {
+        timer = setInterval(() => {
+            time.value--;
+            if (time.value == 0) {
+                clearInterval(timer);
+                results.value = prompt.value.results();
+                resultsDisplay.value = true;
+            }
+        }, 1000);
+        timerStarted.value = true;
+    }
 
     switch (e.key) {
         case "Tab":
@@ -387,9 +431,12 @@ onMounted(() => {
   <div class="p-5">
     <div class="font-bold">Code Type</div>
     <br />
-    <div>Time: </div>
+    <div>Time: {{ time }} seconds</div>
+    <div v-if="resultsDisplay">
+        <span>Results: {{ results }} WPM</span>
+    </div>
     <br />
-    <div class="font-mono" style="white-space: pre-wrap;">
+    <div class="font-mono bg-gray-100 p-5 rounded-md" style="white-space: pre-wrap;">
         <div v-for="line in prompt.lines" :id="`line-${line.index}`" :key="line.index">
             <span v-for="word in line.words" :id="`line-${line.index}-word-${word.index}`" :key="word.index">
                 <span 
